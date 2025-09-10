@@ -1,0 +1,72 @@
+# Core Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.25.0
+python-multipart==0.0.6
+websockets==12.0
+python-socketio==5.10.0
+
+# Database
+sqlalchemy==2.0.23
+sqlite3-api==2.0.1
+# duckdb==0.9.2  # Build issues on Windows with Python 3.12
+alembic==1.13.1
+
+# CAN/Automotive Parsers
+python-can==4.3.0
+cantools==39.4.2
+# python-can-isotp==1.9  # Not available for Python 3.12
+udsoncan==1.20.1
+scapy==2.5.0
+
+# File Parsers
+openpyxl==3.1.2
+pandas==2.1.4
+python-docx==1.1.0
+PyPDF2==3.0.1
+xmltodict==0.13.0
+pydantic==2.5.3
+
+# AI/ML Libraries
+numpy>=1.26.3,<2.0
+scikit-learn==1.3.2
+xgboost==2.0.3
+# prophet==1.1.5  # Not compatible with Python 3.12
+tensorflow==2.16.1
+onnxruntime==1.17.0
+
+# LLM Integration
+ollama==0.1.7
+langchain==0.1.0
+chromadb==0.4.22
+sentence-transformers==2.2.2
+
+# Data Processing
+pyarrow==14.0.2
+polars==0.20.2
+# numba==0.58.1  # Not compatible with Python 3.12
+
+# Utilities
+python-dotenv==1.0.0
+pyyaml==6.0.1
+click==8.1.7
+rich==13.7.0
+tqdm==4.66.1
+python-dateutil==2.8.2
+pytz==2023.3
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+
+# Build Tools
+pyinstaller==6.3.0
+cx_Freeze==6.15.11
+
+# Monitoring
+prometheus-client==0.19.0
+py-spy==0.3.14
+
+# Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
