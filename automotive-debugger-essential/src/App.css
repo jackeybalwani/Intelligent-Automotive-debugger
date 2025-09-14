@@ -91,23 +91,109 @@
   margin-top: 1rem;
 }
 
+.file-selection-note {
+  background: rgba(79, 172, 254, 0.2);
+  border: 1px solid rgba(79, 172, 254, 0.5);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: #4facfe;
+}
+
 .file-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0.5rem;
+  gap: 1rem;
+  padding: 1rem;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 5px;
-  margin-bottom: 0.5rem;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.file-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.file-item.selected {
+  border-color: #4facfe;
+  background: rgba(79, 172, 254, 0.2);
+  box-shadow: 0 0 0 2px rgba(79, 172, 254, 0.1);
+}
+
+.file-select {
+  flex-shrink: 0;
+}
+
+.file-checkbox {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #4facfe;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-main-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.file-status {
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 .file-name {
   font-weight: 500;
+  min-width: 0;
+  word-break: break-all;
 }
 
-.file-size {
-  font-size: 0.9rem;
-  opacity: 0.7;
+.file-format {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.file-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  opacity: 0.8;
+  flex-wrap: wrap;
+}
+
+.file-size, .file-status-text {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.remove-file-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.remove-file-btn:hover {
+  background: rgba(255, 107, 107, 0.2);
+  transform: scale(1.1);
 }
 
 .analyze-button {
@@ -121,6 +207,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+  margin-bottom: 1rem;
 }
 
 .analyze-button:hover:not(:disabled) {
@@ -134,9 +221,35 @@
   transform: none;
 }
 
+.selection-reminder {
+  background: rgba(255, 193, 7, 0.2);
+  border: 1px solid rgba(255, 193, 7, 0.5);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  color: #ffc107;
+  font-size: 0.9rem;
+}
+
 .analysis-results {
   margin-top: 2rem;
   text-align: left;
+}
+
+.results-header {
+  margin-bottom: 1.5rem;
+}
+
+.results-header h3 {
+  margin: 0 0 0.5rem 0;
+  color: #4facfe;
+  font-size: 1.4rem;
+}
+
+.analysis-timestamp {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .results-grid {
@@ -157,6 +270,35 @@
   margin-top: 0;
   margin-bottom: 1rem;
   color: #4facfe;
+  font-size: 1.1rem;
+}
+
+.stats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.stat-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+.stat-value {
+  color: #4facfe;
+  font-weight: 600;
 }
 
 .error-count {
@@ -164,12 +306,18 @@
   font-weight: bold;
   color: #ff6b6b;
   margin-bottom: 1rem;
+  text-align: center;
+}
+
+.error-list {
+  max-height: 300px;
+  overflow-y: auto;
 }
 
 .error-item {
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
-  border-radius: 5px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-radius: 8px;
   background: rgba(255, 107, 107, 0.1);
   border-left: 3px solid #ff6b6b;
 }
@@ -182,6 +330,120 @@
 .error-item.high {
   background: rgba(255, 165, 0, 0.2);
   border-left-color: #ffa502;
+}
+
+.error-item.medium {
+  background: rgba(255, 193, 7, 0.2);
+  border-left-color: #ffc107;
+}
+
+.error-item.low {
+  background: rgba(40, 167, 69, 0.2);
+  border-left-color: #28a745;
+}
+
+.error-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.severity-badge {
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.severity-badge.critical {
+  background: #ff4757;
+  color: white;
+}
+
+.severity-badge.high {
+  background: #ffa502;
+  color: white;
+}
+
+.severity-badge.medium {
+  background: #ffc107;
+  color: #333;
+}
+
+.severity-badge.low {
+  background: #28a745;
+  color: white;
+}
+
+.error-message {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.more-errors {
+  text-align: center;
+  padding: 0.5rem;
+  font-style: italic;
+  opacity: 0.7;
+  font-size: 0.9rem;
+}
+
+.pattern-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pattern-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pattern-item:last-child {
+  border-bottom: none;
+}
+
+.pattern-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+.pattern-value {
+  color: #00f2fe;
+  font-weight: 600;
+}
+
+.timeline-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.timeline-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.timeline-item:last-child {
+  border-bottom: none;
+}
+
+.timeline-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+.timeline-value {
+  color: #764ba2;
+  font-weight: 600;
 }
 
 .query-input {
@@ -239,6 +501,16 @@
   color: #4facfe;
 }
 
+.ai-suggestion {
+  background: rgba(79, 172, 254, 0.2);
+  border: 1px solid rgba(79, 172, 254, 0.5);
+  border-radius: 8px;
+  padding: 1rem;
+  color: #4facfe;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
 .App-footer {
   padding: 2rem;
   background: rgba(0, 0, 0, 0.2);
@@ -267,5 +539,24 @@
   
   .query-input {
     flex-direction: column;
+  }
+
+  .file-main-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .file-meta {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .stat-item,
+  .pattern-item,
+  .timeline-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
   }
 }

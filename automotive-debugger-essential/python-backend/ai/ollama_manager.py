@@ -288,7 +288,41 @@ Focus on practical solutions and root cause analysis.
             half = max_chars // 2
             return text[:half] + "\n...[truncated]...\n" + text[-half:]
         return text
-    
+
+    async def enhance_response(self, query: str, initial_response: str, context: List[Any]) -> str:
+        """
+        Enhance initial response using Ollama AI
+        """
+        try:
+            # Format context for Ollama
+            context_str = ""
+            for ctx in context:
+                if isinstance(ctx, dict):
+                    context_str += f"File: {ctx.get('filename', 'unknown')}\n"
+                    context_str += f"Format: {ctx.get('format', 'unknown')}\n"
+                    stats = ctx.get('stats', {})
+                    if stats:
+                        context_str += f"Messages: {stats.get('total_messages', 0)}\n"
+                        context_str += f"Errors: {stats.get('error_frames', 0)}\n"
+
+            # Create enhanced prompt
+            prompt = f"""Based on this automotive log analysis:
+{context_str}
+
+Initial Analysis: {initial_response}
+
+User Question: {query}
+
+Provide a detailed, expert response focusing on automotive diagnostics and practical solutions:"""
+
+            # Get enhanced response from Ollama
+            enhanced = await self.query(prompt, context_str)
+            return enhanced
+
+        except Exception as e:
+            logger.error(f"Error enhancing response: {e}")
+            return initial_response
+
     async def stream_query(self, prompt: str, context: Optional[str] = None):
         """
         Stream response from model for real-time display

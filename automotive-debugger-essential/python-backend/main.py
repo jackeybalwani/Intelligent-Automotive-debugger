@@ -7,6 +7,7 @@ import os
 import sys
 import asyncio
 import logging
+import io
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
@@ -29,7 +30,7 @@ from analyzers.predictive import PredictiveAnalyzer
 from analyzers.timeline_builder import TimelineBuilder
 from ai.ollama_manager import OllamaManager
 from ai.nlp_engine import NLPEngine
-from database.models import init_database, Session
+from database.models import init_database, get_session, UploadedFile, AnalysisSession, FileStatus
 from utils.file_utils import save_uploaded_file, get_file_hash
 
 # Configure logging
@@ -143,10 +144,24 @@ async def upload_files(files: List[UploadFile] = File(...)):
             # Save file
             file_path = await save_uploaded_file(file)
             file_hash = get_file_hash(file_path)
-            
+
             # Auto-detect format
             detected_format = auto_detector.detect_format(file_path)
-            
+
+            # Save to database
+            session = get_session()
+            uploaded_file = UploadedFile(
+                id=file_hash,
+                filename=file.filename,
+                original_path=file_path,
+                file_size=file.size,
+                file_format=detected_format,
+                status=FileStatus.UPLOADED
+            )
+            session.add(uploaded_file)
+            session.commit()
+            session.close()
+
             # Send progress update
             await broadcast_update({
                 "type": "file_upload",
@@ -154,22 +169,22 @@ async def upload_files(files: List[UploadFile] = File(...)):
                 "status": "processing",
                 "progress": 50
             })
-            
+
             # Initial parsing based on format
             parser = auto_detector.get_parser(detected_format)
             initial_stats = parser.get_file_stats(file_path)
-            
+
             response = FileUploadResponse(
                 file_id=file_hash,
                 filename=file.filename,
                 format=detected_format,
-                size=initial_stats.get("size", 0),
+                size=file.size,
                 status="success",
                 message=f"File uploaded and format detected: {detected_format}"
             )
-            
+
             responses.append(response)
-            
+
             # Send completion update
             await broadcast_update({
                 "type": "file_upload",
@@ -366,23 +381,104 @@ async def health_check():
 # Helper functions
 async def load_parsed_data(file_id: str) -> Dict[str, Any]:
     """Load parsed data from database/cache"""
-    # Implementation to load parsed data
-    pass
+    try:
+        session = get_session()
+        uploaded_file = session.query(UploadedFile).filter_by(id=file_id).first()
+        if not uploaded_file:
+            return {}
+
+        # Parse the file based on format
+        parser = auto_detector.get_parser(uploaded_file.file_format)
+        file_path = uploaded_file.original_path
+
+        # Get basic stats and return structured data
+        stats = parser.get_file_stats(file_path)
+
+        return {
+            'file_id': file_id,
+            'filename': uploaded_file.filename,
+            'format': uploaded_file.file_format,
+            'stats': stats,
+            'path': file_path
+        }
+    except Exception as e:
+        logger.error(f"Error loading parsed data for {file_id}: {e}")
+        return {}
+    finally:
+        session.close()
 
 async def load_dbc_file(file_id: str) -> Dict[str, Any]:
     """Load DBC file data"""
-    # Implementation to load DBC data
-    pass
+    try:
+        session = get_session()
+        uploaded_file = session.query(UploadedFile).filter_by(id=file_id).first()
+        if not uploaded_file or uploaded_file.file_format != 'dbc':
+            return {}
+
+        # Parse DBC file
+        dbc_parser = DBCParser()
+        dbc_data = dbc_parser.parse_file(uploaded_file.original_path)
+
+        return dbc_data
+    except Exception as e:
+        logger.error(f"Error loading DBC file {file_id}: {e}")
+        return {}
+    finally:
+        session.close()
 
 async def save_analysis_results(results: Dict[str, Any]):
     """Save analysis results to database"""
-    # Implementation to save results
-    pass
+    try:
+        session = get_session()
+
+        # Create analysis session record
+        analysis_session = AnalysisSession(
+            id=results['analysis_id'],
+            file_id=results['files'][0] if results['files'] else '',
+            completed_at=datetime.now(),
+            status=FileStatus.ANALYZED,
+            errors=results.get('results', {}).get('errors', []),
+            patterns=results.get('results', {}).get('patterns', {}),
+            timeline_data=results.get('results', {}).get('timeline', {}),
+            statistics=results.get('results', {}).get('stats', {})
+        )
+
+        session.add(analysis_session)
+        session.commit()
+
+        logger.info(f"Analysis results saved: {results['analysis_id']}")
+    except Exception as e:
+        logger.error(f"Error saving analysis results: {e}")
+        session.rollback()
+    finally:
+        session.close()
 
 async def load_analysis_results(analysis_id: str) -> Dict[str, Any]:
     """Load analysis results from database"""
-    # Implementation to load results
-    pass
+    try:
+        session = get_session()
+        analysis_session = session.query(AnalysisSession).filter_by(id=analysis_id).first()
+        if not analysis_session:
+            return {}
+
+        return {
+            'analysis_id': analysis_session.id,
+            'file_id': analysis_session.file_id,
+            'created_at': analysis_session.created_at.isoformat(),
+            'completed_at': analysis_session.completed_at.isoformat() if analysis_session.completed_at else None,
+            'status': analysis_session.status.value,
+            'results': {
+                'errors': analysis_session.errors or [],
+                'patterns': analysis_session.patterns or {},
+                'timeline': analysis_session.timeline_data or {},
+                'statistics': analysis_session.statistics or {}
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error loading analysis results {analysis_id}: {e}")
+        return {}
+    finally:
+        session.close()
 
 # Main entry point
 if __name__ == "__main__":

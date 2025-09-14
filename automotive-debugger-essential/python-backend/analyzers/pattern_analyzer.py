@@ -37,10 +37,18 @@ class PatternAnalyzer:
     
     def _analyze_message_frequency(self, log_data: List[Any]) -> Dict[str, Any]:
         """Analyze message frequency patterns"""
-        # Placeholder implementation
+        if not log_data:
+            return {'total_messages': 0, 'frequency_analysis': 'No data'}
+
+        total_messages = 0
+        for data_entry in log_data:
+            stats = data_entry.get('stats', {})
+            total_messages += stats.get('total_messages', 0)
+
         return {
-            'total_messages': len(log_data),
-            'frequency_analysis': 'Not implemented yet'
+            'total_messages': total_messages,
+            'frequency_analysis': 'Normal' if total_messages > 100 else 'Low',
+            'messages_per_file': total_messages / len(log_data) if log_data else 0
         }
     
     def _analyze_error_patterns(self, log_data: List[Any]) -> Dict[str, Any]:
