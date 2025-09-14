@@ -67,19 +67,38 @@ function App() {
 
         if (response.ok) {
           const result = await response.json();
-          const uploadedFile = result[0]; // First uploaded file
 
-          // Update file with backend response
-          setFiles(prev => prev.map(f =>
-            f.id === tempFile.id
-              ? {
-                  ...f,
-                  id: uploadedFile.file_id,
-                  format: uploadedFile.format,
-                  status: 'uploaded'
-                }
-              : f
-          ));
+          if (result && result.length > 0) {
+            const uploadedFile = result[0]; // First uploaded file
+
+            // Update file with backend response
+            setFiles(prev => prev.map(f =>
+              f.id === tempFile.id
+                ? {
+                    ...f,
+                    id: uploadedFile.file_id,
+                    format: uploadedFile.format,
+                    status: 'uploaded'
+                  }
+                : f
+            ));
+
+            // Auto-select the first uploaded file if none is selected
+            if (!selectedFileId) {
+              setSelectedFileId(uploadedFile.file_id);
+              // Update selection after ID change
+              setTimeout(() => {
+                setFiles(prev => prev.map(f =>
+                  f.id === uploadedFile.file_id ? { ...f, selected: true } : { ...f, selected: false }
+                ));
+              }, 100);
+            }
+          } else {
+            // Handle empty response
+            setFiles(prev => prev.map(f =>
+              f.id === tempFile.id ? { ...f, status: 'error' } : f
+            ));
+          }
         } else {
           // Update file status to error
           setFiles(prev => prev.map(f =>
@@ -360,7 +379,13 @@ function App() {
           
           {!selectedFileId && files.length > 0 && (
             <div className="selection-reminder">
-              ⚠️ Please select a file to analyze
+              ⚠️ Please select a file to analyze by clicking the radio button next to it
+            </div>
+          )}
+
+          {files.length === 0 && (
+            <div className="selection-reminder">
+              📁 Upload a file first to enable analysis
             </div>
           )}
 
@@ -468,7 +493,7 @@ function App() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Ask about errors, patterns, or get diagnostic advice..."
               className="query-field"
-              onKeyPress={(e) => e.key === 'Enter' && handleQuery()}
+              onKeyDown={(e) => e.key === 'Enter' && handleQuery()}
             />
             <button onClick={handleQuery} className="query-button">
               Ask AI

@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 import json
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -40,20 +41,51 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
+# Lifespan event handler for startup and shutdown
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Initialize database and services on startup"""
+    try:
+        # Initialize database
+        init_database()
+
+        # Initialize Ollama
+        await ollama_manager.initialize()
+
+        # Load ML models
+        pattern_analyzer.load_models()
+        predictive_analyzer.load_models()
+
+        logger.info("Backend services initialized successfully")
+    except Exception as e:
+        logger.error(f"Error during startup: {e}")
+
+    yield
+
+    # Cleanup on shutdown
+    logger.info("Shutting down backend services")
+
+# Initialize FastAPI app with lifespan
 app = FastAPI(
     title="Automotive Debug Log Analyzer",
     description="AI-powered automotive log analysis and debugging",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
-# Configure CORS
+# Configure CORS - Environment-aware configuration
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React development server
+    # Only add port 3001 if needed for specific development scenarios
+]
+
+# In production, this should be more restrictive
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Restrict to needed methods
+    allow_headers=["Content-Type", "Authorization", "Accept"],  # Restrict headers
 )
 
 # Initialize services
@@ -94,24 +126,6 @@ class ExportRequest(BaseModel):
     format: str  # pdf, html, csv, json
     include_sections: List[str]
 
-# Startup event
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database and services on startup"""
-    try:
-        # Initialize database
-        init_database()
-        
-        # Initialize Ollama
-        await ollama_manager.initialize()
-        
-        # Load ML models
-        pattern_analyzer.load_models()
-        predictive_analyzer.load_models()
-        
-        logger.info("Backend services initialized successfully")
-    except Exception as e:
-        logger.error(f"Error during startup: {e}")
 
 # WebSocket endpoint for real-time updates
 @app.websocket("/ws")
@@ -148,17 +162,27 @@ async def upload_files(files: List[UploadFile] = File(...)):
             # Auto-detect format
             detected_format = auto_detector.detect_format(file_path)
 
-            # Save to database
+            # Save to database - check if file already exists
             session = get_session()
-            uploaded_file = UploadedFile(
-                id=file_hash,
-                filename=file.filename,
-                original_path=file_path,
-                file_size=file.size,
-                file_format=detected_format,
-                status=FileStatus.UPLOADED
-            )
-            session.add(uploaded_file)
+            existing_file = session.query(UploadedFile).filter_by(id=file_hash).first()
+
+            if existing_file:
+                # File already exists, update its status and timestamp
+                existing_file.status = FileStatus.UPLOADED
+                existing_file.upload_timestamp = datetime.now()
+                uploaded_file = existing_file
+            else:
+                # Create new file record
+                uploaded_file = UploadedFile(
+                    id=file_hash,
+                    filename=file.filename,
+                    original_path=file_path,
+                    file_size=file.size,
+                    file_format=detected_format,
+                    status=FileStatus.UPLOADED
+                )
+                session.add(uploaded_file)
+
             session.commit()
             session.close()
 
@@ -170,9 +194,7 @@ async def upload_files(files: List[UploadFile] = File(...)):
                 "progress": 50
             })
 
-            # Initial parsing based on format
-            parser = auto_detector.get_parser(detected_format)
-            initial_stats = parser.get_file_stats(file_path)
+            # Note: File stats will be calculated during analysis phase for better performance
 
             response = FileUploadResponse(
                 file_id=file_hash,

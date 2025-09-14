@@ -19,6 +19,10 @@
     "dist": "npm run build && electron-builder",
     "dist:win": "npm run build && electron-builder --win",
     "test": "react-scripts test",
+    "lint": "eslint src/**/*.{js,jsx,ts,tsx} --fix",
+    "lint:check": "eslint src/**/*.{js,jsx,ts,tsx}",
+    "format": "prettier --write src/**/*.{js,jsx,ts,tsx,json,css,md}",
+    "type-check": "tsc --noEmit",
     "postinstall": "electron-builder install-app-deps",
     "setup": "npm install && pip install -r python-backend/requirements.txt && python setup.py"
   },
@@ -49,7 +53,13 @@
     "zustand": "^4.4.7"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/jest": "^30.0.0",
     "@types/react-window": "^1.8.8",
+    "@typescript-eslint/eslint-plugin": "^8.43.0",
+    "@typescript-eslint/parser": "^8.43.0",
     "autoprefixer": "^10.4.16",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
@@ -58,6 +68,7 @@
     "electron-devtools-installer": "^3.2.0",
     "electron-is-dev": "^2.0.0",
     "electron-reload": "^2.0.0-alpha.1",
+    "eslint-plugin-import": "^2.32.0",
     "postcss": "^8.4.32",
     "wait-on": "^7.2.0"
   },
