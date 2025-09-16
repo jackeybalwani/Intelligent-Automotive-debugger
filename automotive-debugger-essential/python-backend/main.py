@@ -408,6 +408,7 @@ async def export_analysis(request: ExportRequest):
 
 # Health check endpoint
 @app.get("/api/health")
+@app.head("/api/health")
 async def health_check():
     """Check backend service health"""
     return {

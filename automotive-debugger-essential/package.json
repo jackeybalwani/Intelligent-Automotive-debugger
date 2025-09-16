@@ -8,9 +8,9 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "start": "concurrently \"npm run react:start\" \"npm run electron:start\" \"npm run python:start\"",
+    "start": "concurrently --kill-others-on-fail \"npm run python:start\" \"npm run react:start\" \"npm run electron:start\"",
     "react:start": "cross-env BROWSER=none react-scripts start",
-    "electron:start": "wait-on http://localhost:3000 && electron .",
+    "electron:start": "wait-on http://localhost:3000 && wait-on http://localhost:8000/api/health && electron .",
     "python:start": "cd python-backend && python main.py",
     "build": "npm run react:build && npm run python:build && npm run electron:build",
     "react:build": "react-scripts build",

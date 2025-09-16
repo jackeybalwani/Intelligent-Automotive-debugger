@@ -357,22 +357,26 @@ function createApplicationMenu(window) {
 }
 
 /**
- * Start Python backend server
+ * Start Python backend server (only in production mode)
+ * In development, we expect the backend to be started via npm scripts
  */
 async function startPythonBackend() {
   return new Promise((resolve, reject) => {
-    const pythonExecutable = isDev 
-      ? 'python' 
-      : path.join(process.resourcesPath, 'python-backend', 'main.exe');
-    
-    const pythonPath = isDev
-      ? path.join(__dirname, '../python-backend/main.py')
-      : pythonExecutable;
+    // In development mode, don't start our own Python backend
+    // The npm start script handles this via concurrently
+    if (isDev) {
+      log.info('Development mode: Skipping Python backend startup (handled by npm scripts)');
+      resolve();
+      return;
+    }
 
-    log.info('Starting Python backend:', pythonPath);
+    // Production mode: start the bundled Python backend
+    const pythonExecutable = path.join(process.resourcesPath, 'python-backend', 'main.exe');
+
+    log.info('Starting Python backend:', pythonExecutable);
 
     try {
-      pythonProcess = spawn(isDev ? pythonExecutable : pythonPath, isDev ? [pythonPath] : [], {
+      pythonProcess = spawn(pythonExecutable, [], {
         env: {
           ...process.env,
           PYTHONUNBUFFERED: '1'
