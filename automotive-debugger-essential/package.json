@@ -69,6 +69,8 @@
     "electron-is-dev": "^2.0.0",
     "electron-reload": "^2.0.0-alpha.1",
     "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-react": "^7.35.0",
+    "prettier": "^3.1.0",
     "postcss": "^8.4.32",
     "wait-on": "^7.2.0"
   },
@@ -100,8 +102,8 @@
       "publisherName": "Automotive Debug Team",
       "publish": {
         "provider": "github",
-        "owner": "your-github-username",
-        "repo": "automotive-debugger"
+        "owner": "jackeybalwani",
+        "repo": "Intelligent-Automotive-debugger"
       }
     },
     "nsis": {
@@ -120,7 +122,7 @@
     },
     "publish": {
       "provider": "generic",
-      "url": "https://your-update-server.com/releases"
+      "url": "https://github.com/jackeybalwani/Intelligent-Automotive-debugger/releases"
     }
   },
   "eslintConfig": {

@@ -162,29 +162,49 @@ async def upload_files(files: List[UploadFile] = File(...)):
             # Auto-detect format
             detected_format = auto_detector.detect_format(file_path)
 
-            # Save to database - check if file already exists
+            # Save to database with proper error handling
             session = get_session()
-            existing_file = session.query(UploadedFile).filter_by(id=file_hash).first()
+            try:
+                existing_file = session.query(UploadedFile).filter_by(id=file_hash).first()
 
-            if existing_file:
-                # File already exists, update its status and timestamp
-                existing_file.status = FileStatus.UPLOADED
-                existing_file.upload_timestamp = datetime.now()
-                uploaded_file = existing_file
-            else:
-                # Create new file record
-                uploaded_file = UploadedFile(
-                    id=file_hash,
-                    filename=file.filename,
-                    original_path=file_path,
-                    file_size=file.size,
-                    file_format=detected_format,
-                    status=FileStatus.UPLOADED
-                )
-                session.add(uploaded_file)
+                if existing_file:
+                    # File already exists, update its status and timestamp
+                    existing_file.status = FileStatus.UPLOADED
+                    existing_file.upload_timestamp = datetime.now()
+                    existing_file.filename = file.filename  # Update filename in case it changed
+                    existing_file.original_path = file_path  # Update path
+                    uploaded_file = existing_file
+                    logger.info(f"Updated existing file: {file.filename}")
+                else:
+                    # Create new file record
+                    uploaded_file = UploadedFile(
+                        id=file_hash,
+                        filename=file.filename,
+                        original_path=file_path,
+                        file_size=file.size,
+                        file_format=detected_format,
+                        status=FileStatus.UPLOADED
+                    )
+                    session.add(uploaded_file)
+                    logger.info(f"Created new file record: {file.filename}")
 
-            session.commit()
-            session.close()
+                session.commit()
+            except Exception as e:
+                session.rollback()
+                logger.error(f"Database error for file {file.filename}: {e}")
+                # Try to handle constraint errors gracefully
+                if "UNIQUE constraint failed" in str(e):
+                    # File exists but wasn't found in our query, try to get it again
+                    existing_file = session.query(UploadedFile).filter_by(id=file_hash).first()
+                    if existing_file:
+                        uploaded_file = existing_file
+                        logger.info(f"Found existing file after constraint error: {file.filename}")
+                    else:
+                        raise e
+                else:
+                    raise e
+            finally:
+                session.close()
 
             # Send progress update
             await broadcast_update({

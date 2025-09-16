@@ -7,10 +7,15 @@ import subprocess
 import json
 import logging
 import asyncio
+import os
 from typing import Dict, Any, Optional, List
 import aiohttp
 import time
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +25,12 @@ class OllamaManager:
     """
     
     def __init__(self):
-        self.base_url = "http://localhost:11434"
-        self.model_name = "llama3.2:3b"  # Will use Q4_K_M quantization
-        self.context_window = 8192  # 8K context
-        self.max_tokens = 2048
-        self.temperature = 0.7
+        self.base_url = os.getenv('OLLAMA_BASE_URL', 'http://localhost:11434')
+        self.model_name = os.getenv('OLLAMA_MODEL_NAME', 'llama3.2:3b')  # Will use Q4_K_M quantization
+        self.context_window = int(os.getenv('OLLAMA_CONTEXT_WINDOW', '8192'))  # 8K context
+        self.max_tokens = int(os.getenv('OLLAMA_MAX_TOKENS', '2048'))
+        self.temperature = float(os.getenv('OLLAMA_TEMPERATURE', '0.7'))
+        self.timeout = int(os.getenv('OLLAMA_TIMEOUT', '30'))
         self.is_running = False
         self.session = None
         

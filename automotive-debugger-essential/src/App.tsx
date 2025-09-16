@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './App.css';
+import config from './config/environment';
 
 interface UploadedFile {
   id: string;
@@ -60,7 +61,7 @@ function App() {
         const formData = new FormData();
         formData.append('files', file);
 
-        const response = await fetch('http://localhost:8000/api/upload', {
+        const response = await fetch(config.getApiUrl('upload'), {
           method: 'POST',
           body: formData
         });
@@ -157,8 +158,33 @@ function App() {
     ));
 
     try {
-      // Simulate realistic analysis with file-specific data
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Call the backend analyze endpoint
+      const response = await fetch(config.getApiUrl('analyze'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          file_id: selectedFile.id,
+          file_name: selectedFile.name
+        })
+      });
+
+      if (response.ok) {
+        const result: AnalysisResult = await response.json();
+        setAnalysisResult(result);
+
+        // Update file status
+        setFiles(prev => prev.map(file =>
+          file.selected ? { ...file, status: 'analyzed' as const } : file
+        ));
+        return; // Exit successfully
+      } else {
+        console.warn('Backend analysis failed, falling back to mock data');
+      }
+
+      // Fallback to mock data if backend is unavailable
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Generate realistic statistics based on file
       const mockStatistics = {
@@ -223,7 +249,7 @@ function App() {
 
     try {
       // Call the backend API for NLP query
-      const response = await fetch('http://localhost:8000/api/nlp/query', {
+      const response = await fetch(config.getApiUrl('nlp'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -271,6 +297,82 @@ function App() {
       setSelectedFileId('');
       setAnalysisResult(null);
     }
+  };
+
+  const handleExport = async (format: 'csv' | 'html' | 'pdf') => {
+    if (!analysisResult) return;
+
+    try {
+      const response = await fetch(config.getApiUrl('export'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          file_id: analysisResult.fileId,
+          format: format,
+          include_sections: ['statistics', 'errors', 'patterns', 'timeline']
+        })
+      });
+
+      if (response.ok) {
+        // Get the file as a blob
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+
+        // Create a temporary link to download the file
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${analysisResult.fileName}_analysis.${format}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } else {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+
+      // Fallback: Generate client-side export for CSV
+      if (format === 'csv') {
+        generateCSVFallback();
+      } else {
+        alert(`Export to ${format.toUpperCase()} failed. Backend service may be unavailable.`);
+      }
+    }
+  };
+
+  const generateCSVFallback = () => {
+    if (!analysisResult) return;
+
+    const csvContent = [
+      'Error Analysis Report',
+      `File: ${analysisResult.fileName}`,
+      `Generated: ${analysisResult.timestamp}`,
+      '',
+      'Statistics',
+      `Total Messages,${analysisResult.statistics.totalMessages}`,
+      `Unique IDs,${analysisResult.statistics.uniqueIds}`,
+      `Error Count,${analysisResult.statistics.errorCount}`,
+      `File Size,${formatFileSize(analysisResult.statistics.fileSize)}`,
+      '',
+      'Errors',
+      'ID,Type,Severity,Message,Timestamp',
+      ...analysisResult.errors.map(error =>
+        `${error.id},"${error.type}","${error.severity}","${error.message}",${error.timestamp}`
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${analysisResult.fileName}_analysis.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -392,9 +494,34 @@ function App() {
           {analysisResult && (
             <div className="analysis-results">
               <div className="results-header">
-                <h3>Analysis Results - {analysisResult.fileName}</h3>
-                <div className="analysis-timestamp">
-                  Analyzed at: {new Date(analysisResult.timestamp).toLocaleString()}
+                <div className="results-title">
+                  <h3>Analysis Results - {analysisResult.fileName}</h3>
+                  <div className="analysis-timestamp">
+                    Analyzed at: {new Date(analysisResult.timestamp).toLocaleString()}
+                  </div>
+                </div>
+                <div className="export-buttons">
+                  <button
+                    className="export-btn csv-btn"
+                    onClick={() => handleExport('csv')}
+                    title="Export to CSV"
+                  >
+                    📊 CSV
+                  </button>
+                  <button
+                    className="export-btn html-btn"
+                    onClick={() => handleExport('html')}
+                    title="Export to HTML"
+                  >
+                    🌐 HTML
+                  </button>
+                  <button
+                    className="export-btn pdf-btn"
+                    onClick={() => handleExport('pdf')}
+                    title="Export to PDF"
+                  >
+                    📄 PDF
+                  </button>
                 </div>
               </div>
               

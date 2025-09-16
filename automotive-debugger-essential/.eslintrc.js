@@ -5,7 +5,7 @@ module.exports = {
   ],
   rules: {
     // General rules
-    'no-console': 'warn',
+    'no-console': 'off',  // Disable for debugging
     'no-debugger': 'error',
   },
   settings: {
